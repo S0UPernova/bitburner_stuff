@@ -1,11 +1,13 @@
 
-import { genPath } from "findPathTo.js"
+import { NS } from "@ns"
+import genPath from "functions/genPath"
+import { node } from "/Types"
 /** @param {NS} ns */
-export async function main(ns) {
+export async function main(ns: NS) {
   const { log } = ns.flags([["log", false]])
   const ramRequired = 3
   let depth = 0
-  let maxDepth = ns.args[0] ? ns.args[0] : 5
+  let maxDepth = ns.args[0] as number ? ns.args[0] as number : 5
   let keepGoing = true
   // const script = ["hack.js", "killScripts.js"]
   const nodesSet = new Set()
@@ -22,7 +24,7 @@ export async function main(ns) {
    * @param {Array<node>} arr
    * @param {string} [filename] - default nodes.txt
    */
-  function makeFile(arr, filename = "nodes.txt") {
+  function makeFile(arr: node[], filename = "nodes.txt") {
     const data = JSON.stringify(arr)
     // ns.tprint('data: ', data)
     ns.write(filename, data, 'w')
@@ -33,7 +35,7 @@ export async function main(ns) {
   /**
    * @param {string} target - hostname of target to crack
    */
-  async function crack(target) {
+  async function crack(target: string) {
     const skill = ns.getHackingLevel()
     const skillRequired = ns.getServerRequiredHackingLevel(target)
     if (!ns.hasRootAccess(target)) {
@@ -69,7 +71,7 @@ export async function main(ns) {
     }
     if (ns.hasRootAccess(target)) {
 
-      const tempServer = ns.getServer(target)
+      const tempServer: node = ns.getServer(target)
       tempServer.connections = ns.scan(target)
       if (
         skill >= skillRequired
@@ -91,7 +93,7 @@ export async function main(ns) {
         })
       }
     }
-    const server = ns.getServer(target)
+    const server: node = ns.getServer(target)
     server.connections = ns.scan(target)
     if (
       skill >= skillRequired
@@ -109,20 +111,20 @@ export async function main(ns) {
   }
 
   // nodesSet.add("home")
-  ns.scan().forEach(node => {
+  ns.scan().forEach((node: string) => {
     nodesSet.add(node)
   })
-  let nodes = Array.from(nodesSet)
+  let nodes = Array.from(nodesSet) as string[]
 
   // should add checked hash, and prevent rechecks
   while (keepGoing) {
-    nodes.forEach((node, i) => {
-      ns.scan(node).forEach(nextNode => {
+    nodes.forEach((node: string, i) => {
+      ns.scan(node).forEach((nextNode: string) => {
         nodesSet.add(nextNode)
       })
       const temp = [...nodes]
-      nodes = Array.from(nodesSet)
-      if (Array.from(nodesSet) === temp.length || depth >= maxDepth) {
+      nodes = Array.from(nodesSet) as string[]
+      if (nodes == temp || depth >= maxDepth) {
         keepGoing = false
       }
     })
@@ -132,7 +134,7 @@ export async function main(ns) {
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i] === 'home') continue
     await crack(nodes[i])
-    const server = ns.getServer(nodes[i])
+    const server: node = ns.getServer(nodes[i])
     server.connections = ns.scan(server.hostname)
     nodesArr.push(server)
   }

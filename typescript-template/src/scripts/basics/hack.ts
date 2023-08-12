@@ -1,12 +1,14 @@
+import { NS } from "@ns"
+
 /** @param {NS} ns */
-export async function main(ns) {
-  let targets = ns.args
+export async function main(ns: NS) {
+  let targets = ns.args as string[]
   if (ns.args.length === 0) {
     targets.push(ns.getHostname())
   }
   for (; ;) {
     await ns.sleep(Math.random() * 1000)
-    targets = targets.filter(node => !ns.getPurchasedServers().includes(node)).sort(() => (Math.random() > .5) ? 1 : -1)
+    targets = targets.filter((node) => !ns.getPurchasedServers().includes(node)).sort(() => (Math.random() > .5) ? 1 : -1)
     ns.print(targets)
     // todo make it hit bigger targets more often
     for (let i = 0; i < targets.length; i++) {

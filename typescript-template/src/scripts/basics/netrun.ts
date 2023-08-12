@@ -1,24 +1,28 @@
+import { NS, ScriptArg } from "@ns"
+import { node } from "/Types"
 /** @param {NS} ns */
 // import money from "money.js"
-export async function main(ns) {
-  // function money(ns, limit, servers) {
-  //   servers.filter(node => { return node.requiredHackingSkill < ns.getHackingLevel() })
-  //     .sort((a, b) => b.moneyMax - a.moneyMax)
-  //   const arr = []
-  //   servers.forEach(server => arr.push(server.hostname))
-  //   if (limit > 0) {
-  //     return arr.slice(0, limit)
-  //   }
-  //   else {
-  //     return arr.slice()
-  //   }
-  // }
-  /**
-     * @param {string} script
-     * @param {string} runOn
-     * @param {string} [scriptArgs] - arguments
-     */
-  const { script, runOn, top, killRunning, scriptArgs } = ns.flags([["script", "hack.js"], ["runOn", ""], ["top", 0], ["killRunning", false], ["scriptArgs", ""]])
+export async function main(ns: NS) {
+
+  // todo get this interface working for the flags
+  interface params {
+    script: { [key: string]: ScriptArg | string[] },
+    runOn: { [key: string]: ScriptArg | string[] },
+    top: {[key: string]: ScriptArg | string[]},
+    killRunning: {[key: string]: ScriptArg | string[]},
+    scriptArgs: {[key: string]: ScriptArg | string[]}
+  }
+
+  const { one, two, three, four, five } = ns.flags([["script", "hack.js"], ["runOn", ""], ["top", 0], ["killRunning", false], ["scriptArgs", ""]])
+  const script = one as string
+  const runOn = two as string
+  const top = three as number
+  const killRunning = four as boolean
+  const scriptArgs = five as ScriptArg | string[]
+
+
+  
+  if (typeof script !== "string" || typeof runOn !== "string" || typeof killRunning !== "boolean" || typeof scriptArgs === "number" && typeof scriptArgs === "boolean") return;
   ns.print('flags: ', top)
   ns.print("args: ", ns.args)
   /**
@@ -34,12 +38,16 @@ export async function main(ns) {
   const home = "home"
   // const host = runON
 
-  /**
-   * @param {string} script
-   * @param {string} target
-   * @param {(number | string | boolean)[]} params
-   */
-  function runScript(script, target, params) {
+  function condition(): boolean {
+    return (
+      Array.isArray(scriptArgs) && scriptArgs.length > 0 
+      || typeof scriptArgs === "string" && scriptArgs.length > 0 
+      || typeof scriptArgs === "boolean" 
+      || typeof scriptArgs === "number"
+    )
+  }
+
+  function runScript(script: string, target: string, params: ScriptArg | string[]) {
     if (target !== home) {
       ns.scp(script, target)
     }
@@ -52,11 +60,12 @@ export async function main(ns) {
     const threads = Math.floor(ramAvailable / ramRequired)
     if (threads === Infinity) return
     if (threads === 0) return
-    // move the files to the target
-    // if (ns.isRunning(script, target, ...params.slice())) {
-    // }
-    // todo have it make threads default to the max for the server given the script
-    ns.exec(script, target, threads, ...params.slice())
+    if (Array.isArray(params)) {
+      ns.exec(script, target, threads, ...params.slice())
+    }
+    else {
+      ns.exec(script, target, threads, params)
+    }
   }
 
   const fileName = "nodes.txt"
@@ -75,9 +84,15 @@ export async function main(ns) {
   /**
    * @type {Node[]}
    */
-  let nodes = JSON.parse(ns.read(fileName)).filter(node => node.hostname !== home)
+  let nodes: node[] = JSON.parse(ns.read(fileName)).filter((node: node) => node.hostname !== home)
+  if (typeof top !== "number") return
   if (top > 0) (
-    nodes.sort((a, b) => b.moneyMax - a.moneyMax)//.slice(0, top)
+    nodes.sort((a: node, b: node) => {
+      if (a?.moneyMax && b?.moneyMax) {
+        return b.moneyMax - a.moneyMax
+      }
+      else return 0
+    })//.slice(0, top)
   )
 
   /** @type node[] */
@@ -88,20 +103,23 @@ export async function main(ns) {
   ns.print("globals", globals)
 
   if (runOn?.length > 0) {
-    const temp = []
+    const temp: string[] = []
 
     nodes.filter(
-      node => {
-        return (
-          node.hasAdminRights
-          && node.requiredHackingSkill <= ns.getHackingLevel()
-        )
+      (node: node) => {
+        if (node?.hasAdminRights && node.requiredHackingSkill && node.requiredHackingSkill <= ns.getHackingLevel()) return true
+        else if (node?.hasAdminRights && node.requiredHackingSkill === undefined) return true
+        else return false
+        // (
+        //   node.hasAdminRights
+        //   && node.requiredHackingSkill <= ns.getHackingLevel()
+        // )
       }
     )
       .slice(0, top > 0 ? top : nodes.length).forEach(node => {
         temp.push(node.hostname)
       })
-    if (scriptArgs.length > 0) {
+    if (condition()) {
       runScript(script, runOn, scriptArgs)
 
     }
@@ -113,6 +131,7 @@ export async function main(ns) {
   else {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]
+      if (!node.connections) continue
       const connections = node.connections.filter(connection => connection !== home).filter(connection => connection.hasAdminRights)
 
       ns.print(`host: ${node.hostname}, connections: ${connections}`)

@@ -1,11 +1,13 @@
-import "../../Types.js"
-import genPath from "/functions/std/genPath.js"
+
+import {NS} from "@ns"
+import { node } from "Types"
+import genPath from "functions/genPath.js"
 /** @param {NS} ns */
-export async function main(ns) {
-  const [...servers] = ns.args
-  const list = []
+export async function main(ns: NS) {
+  const [...servers] = ns.args as string[]
+  const list: node[] = []
   servers.forEach(server => {
-    const temp = ns.getServer(server)
+    const temp = ns.getServer(server) as node
     temp.connections = ns.scan(server)
     list.push(temp)
   })
