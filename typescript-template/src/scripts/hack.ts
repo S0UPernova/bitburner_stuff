@@ -21,6 +21,7 @@ export async function main(ns: NS) {
       const currHackingLevel = ns.getHackingLevel()
       if ((level - (minLevel / 4)) > minLevel) {
         await ns.weaken(targets[i])
+        // await weakenServer(ns, targets[i])
       }
       else if (hackingLevelReq <= currHackingLevel) {
         if (current + (Math.random() * (current / 2)) < max) {

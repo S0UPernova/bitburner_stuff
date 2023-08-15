@@ -1,10 +1,9 @@
 import { NS, Server } from "/../NetscriptDefinitions"
-import node from "/types"
-
-export default function money(ns: NS, limit: number, servers: node[]): string[] {
-
-  servers.filter((node: node) => { return node?.requiredHackingSkill ? node.requiredHackingSkill < ns.getHackingLevel() : false })
-    .sort((a: node, b: node): number => {
+import { hackable } from "./std/fliters"
+import { SERVER_NET_NODE } from "@types"
+export default function money(ns: NS, serverList: SERVER_NET_NODE[], limit: number = 0): string[] {
+  const servers = hackable(ns, serverList)
+    .sort((a: SERVER_NET_NODE, b: SERVER_NET_NODE): number => {
       if (!a?.moneyMax || !b?.moneyMax) {
         return 0
       }

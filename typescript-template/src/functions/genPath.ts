@@ -1,18 +1,21 @@
 import { NS } from "/../NetscriptDefinitions"
-import node from "/types"
+import { SERVER_NET_NODE } from "@types"
+import scanServers from "functions/scanServers"
 
-export default async function genPath(ns: NS, serverToFind: node): Promise<string[]> {
-  const nodes: node[] = JSON.parse(ns.read('nodes.txt'))
-  const start: node = ns.getServer()
+export default async function genPath(ns: NS, serverToFind: SERVER_NET_NODE, trim: boolean = true): Promise<string[]> {
+  const nodes: SERVER_NET_NODE[] = scanServers(ns, 1000).map(hostname => {
+    return {...ns.getServer(hostname), connections: ns.scan(hostname)}
+  })
+  const start: SERVER_NET_NODE = ns.getServer()
   start.connections = ns.scan(start.hostname)
   const parentForCell: any = {}
-  const queue: node[] = []
+  const queue: SERVER_NET_NODE[] = []
 
   queue.push(start)
 
   while (queue.length > 0) {
     // await ns.sleep(0)
-    const current: node | undefined = queue.shift()
+    const current: SERVER_NET_NODE | undefined = queue.shift()
     if (!current?.hostname) continue
     if (!current?.connections) continue
     const currentKey = current.hostname
@@ -22,13 +25,13 @@ export default async function genPath(ns: NS, serverToFind: node): Promise<strin
       if (key in parentForCell) {
         continue
       }
-      
+
       parentForCell[key] = {
         key: currentKey,
         cell: current
       }
 
-      const node: node | undefined = nodes.find(node => {
+      const node: SERVER_NET_NODE | undefined = nodes.find(node => {
         if (current?.connections !== undefined && current?.connections[i] !== undefined) {
           return node.hostname === current.connections[i]
         }
@@ -49,16 +52,17 @@ export default async function genPath(ns: NS, serverToFind: node): Promise<strin
 
   while (/* currentKey !== start.hostname && */ currentKey && parentForCell[currentKey]) {
     path.unshift(current.hostname)
-    if (current.hostname === 'home') break
+    if (current.hostname === start.hostname) break
     const { key, cell } = parentForCell[currentKey]
     current = cell
     currentKey = key
   }
-
-  for (let i = path.length - 1; i > 0; i--) {
-    if (ns.getServer(path[i]).backdoorInstalled) {
-      path.splice(0, i)
-      break
+  if (trim) {
+    for (let i = path.length - 1; i > 0; i--) {
+      if (ns.getServer(path[i]).backdoorInstalled) {
+        path.splice(0, i)
+        break
+      }
     }
   }
 
