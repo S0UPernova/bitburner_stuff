@@ -2,7 +2,7 @@ import { NS } from "@ns"
 import { SERVER_NET_NODE } from "@types"
 import crack from "functions/crack"
 import scanServers from "functions/scanServers"
-import netNodeFromStrings from "functions/netNodesFromStrings"
+import { netNodesFromStrings } from "functions/netNodesFromStrings"
 
 /**
  * 
@@ -14,7 +14,7 @@ export async function spread(ns: NS, maxDepth: number): Promise<boolean> {
   const hostnameArr = scanServers(ns, maxDepth)
   await crack(ns, [...hostnameArr])
   // if (ns.getHostname() === "home") {
-  const nodesArr = netNodeFromStrings(ns, hostnameArr)
+  const nodesArr = netNodesFromStrings(ns, hostnameArr)
   return makeFile(ns, nodesArr, "nodes.txt")
   // }
   // else return false

@@ -1,6 +1,10 @@
 import { formatMoney } from "/functions/formatMoney"
 import { NS } from "@ns"
 export async function main(ns: NS) {
+  const numberOfServersToHit: number = ns.args[0] as number
+  if (Number.isNaN(numberOfServersToHit)) {
+    ns.tprint("Must include how many top money servers to hit")
+  }
   ns.disableLog("getServerMaxRam")
   ns.disableLog("sleep")
   ns.disableLog("run")
@@ -15,13 +19,12 @@ export async function main(ns: NS) {
     if (servers.length === maxServers) {
       break
     }
-
     if (ns.getPlayer().money > cost) {
       const serverName = `server${servers.length}`
       ns.purchaseServer(serverName, purchaseRam)
-      ns.exec("scripts/infect.js", runOn, 1, "1000")
+      // ns.exec("scripts/infect.js", runOn, 1, "1000")
       await ns.sleep(1000 * 30)
-      ns.exec("scripts/netrun.js", runOn, 1, "--script", "hack.js", "--top", "10", "runOn", serverName)
+      ns.exec("scripts/netrun.js", runOn, 1, "--script", "hack.js", "--top", numberOfServersToHit, "--runOn", serverName)
     }
   }
 
@@ -41,7 +44,7 @@ export async function main(ns: NS) {
       if (upgrayeddRam < maxRam && upgrayeddCost < ns.getPlayer().money) {
         ns.print(`upgrayedding ${servers[i]} ram from ${upgrayeddRam} to ${upgrayeddRam * 2} for \$${formatMoney(upgrayeddCost)}`)
         ns.upgradePurchasedServer(servers[i], upgrayeddRam * 2)
-        ns.exec("scripts/infect.js", runOn, 1, "1000")
+        // ns.exec("scripts/infect.js", runOn, 1, "1000")
         await ns.sleep(1000 * 30)
         ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", servers[i], "--top", 10, "--killRunning")
       }
