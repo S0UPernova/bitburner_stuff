@@ -1,4 +1,3 @@
-import { formatMoney } from "/functions/formatMoney"
 import { NS } from "@ns"
 export async function main(ns: NS) {
   const numberOfServersToHit: number = ns.args[0] as number
@@ -42,11 +41,11 @@ export async function main(ns: NS) {
       }
       const upgrayeddCost = ns.getPurchasedServerUpgradeCost(servers[i], upgrayeddRam * 2)
       if (upgrayeddRam < maxRam && upgrayeddCost < ns.getPlayer().money) {
-        ns.print(`upgrayedding ${servers[i]} ram from ${upgrayeddRam} to ${upgrayeddRam * 2} for \$${formatMoney(upgrayeddCost)}`)
+        ns.print(`upgrayedding ${servers[i]} ram from ${upgrayeddRam} to ${upgrayeddRam * 2} for \$${Intl.NumberFormat('en-us').format(upgrayeddCost)}`)
         ns.upgradePurchasedServer(servers[i], upgrayeddRam * 2)
         // ns.exec("scripts/infect.js", runOn, 1, "1000")
         await ns.sleep(1000 * 30)
-        ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", servers[i], "--top", 10, "--killRunning")
+        ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", servers[i], "--top", "10", "--killRunning")
       }
     }
   }

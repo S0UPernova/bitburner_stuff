@@ -20,7 +20,7 @@ export async function main(ns: NS) {
   if (typeof script !== "string" || typeof runOn !== "string" || typeof killRunning !== "boolean" || typeof threads !== "number" || typeof deps !== "string" || typeof top !== "number") return;
 
   const nodes: SERVER_NET_NODE[] = netNodesFromStrings(ns, scanServers(ns, maxDepth))
-    .filter((server: SERVER_NET_NODE) => server.hasAdminRights)
+    .filter((server: SERVER_NET_NODE) => server.hasAdminRights && server.hostname !== "home")
   const globalTargets: SERVER_NET_NODE[] = nodes.filter(node => filterFunction(node, hackingLevel))
   if (runOn?.length === 0) {
     ns.print("not using runOn.")
