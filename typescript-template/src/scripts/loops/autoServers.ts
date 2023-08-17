@@ -22,31 +22,35 @@ export async function main(ns: NS) {
       const serverName = `server${servers.length}`
       ns.purchaseServer(serverName, purchaseRam)
       // ns.exec("scripts/infect.js", runOn, 1, "1000")
-      await ns.sleep(1000 * 30)
-      ns.exec("scripts/netrun.js", runOn, 1, "--script", "hack.js", "--top", numberOfServersToHit, "--runOn", serverName)
+      // await ns.sleep(1000 * 30)
+      ns.exec("scripts/netrun.js", runOn, 1, "--script", "hack.js", "--top", numberOfServersToHit ? numberOfServersToHit : 10, "--runOn", serverName)
     }
   }
 
   let keepGoing = true
   while (keepGoing) {
     await ns.sleep(1000)
-    const servers = ns.getPurchasedServers()
-
     keepGoing = false
-    for (let i = 0; i < servers.length; i++) {
-      const upgrayeddRam = ns.getServerMaxRam(servers[i])
-      if (upgrayeddRam < maxRam) {
+    
+    const servers = ns.getPurchasedServers()
+    let weakestServer = ""
 
+    for (let i = 0; i < servers.length; i++) {
+      if (ns.getServerMaxRam(servers[i]) < maxRam) {
         keepGoing = true
+        if (weakestServer === "" || ns.getServerMaxRam(servers[i]) < ns.getServerMaxRam(weakestServer)) {
+          weakestServer = servers[i]
+        }
       }
-      const upgrayeddCost = ns.getPurchasedServerUpgradeCost(servers[i], upgrayeddRam * 2)
-      if (upgrayeddRam < maxRam && upgrayeddCost < ns.getPlayer().money) {
-        ns.print(`upgrayedding ${servers[i]} ram from ${upgrayeddRam} to ${upgrayeddRam * 2} for \$${Intl.NumberFormat('en-us').format(upgrayeddCost)}`)
-        ns.upgradePurchasedServer(servers[i], upgrayeddRam * 2)
-        // ns.exec("scripts/infect.js", runOn, 1, "1000")
-        await ns.sleep(1000 * 30)
-        ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", servers[i], "--top", "10", "--killRunning")
-      }
+    }
+    const upgrayeddRam = ns.getServerMaxRam(weakestServer)
+    const upgrayeddCost = ns.getPurchasedServerUpgradeCost(weakestServer, upgrayeddRam * 2)
+    if (upgrayeddRam < maxRam && upgrayeddCost < ns.getPlayer().money) {
+      ns.print(`upgrayedding ${weakestServer} ram from ${upgrayeddRam} to ${upgrayeddRam * 2} for \$${Intl.NumberFormat('en-us').format(upgrayeddCost)}`)
+      ns.upgradePurchasedServer(weakestServer, upgrayeddRam * 2)
+      // ns.exec("scripts/infect.js", runOn, 1, "1000")
+      // await ns.sleep(1000 * 30)
+      ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", weakestServer, "--top", "10", "--killRunning")
     }
   }
   ns.tprint("You are at your server limit, and their ram is maxed out")

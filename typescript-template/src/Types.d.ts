@@ -11,8 +11,7 @@ import { Server } from "@ns";
     target: string
     hostname: string
   }
-
-  interface messageChannel {
-    hostname: string
-    port: number
+  interface messageChannels {
+    [key: string]: {server: SERVER_NET_NODE,messages: portActionMessages[]}
   }
+

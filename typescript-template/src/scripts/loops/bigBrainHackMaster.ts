@@ -2,7 +2,8 @@ import { NS } from "@ns"
 import { netNodesFromStrings } from "/functions/netNodesFromStrings"
 import scanServers from "/functions/scanServers"
 import { hackable } from "/functions/std/fliters"
-import { messageChannel, SERVER_NET_NODE } from "/Types"
+import { sortFromNetNodes } from "/functions/std/sorts"
+import { SERVER_NET_NODE } from "/Types"
 
 interface ratio {
   weaken: number
@@ -12,19 +13,20 @@ interface ratio {
 const hackScript = "scripts/basics/hack.js"
 const weakenScript = "scripts/basics/weaken.js"
 const growScript = "scripts/basics/grow.js"
-const channelPort = 5500
+const messagePort = 5500
 export function main(ns: NS) {
   const ratio = {
-    weaken: 3,
-    grow: 6,
-    hack: 1
+    weaken: 35,
+    grow: 60,
+    hack: 5
   }
-  const channels: messageChannel[] = []
   const targets = netNodesFromStrings(ns, scanServers(ns, 1000))
     .filter(node => hackable(node, ns.getHackingLevel()))
+
+  sortFromNetNodes(ns, targets)
+
   targets.forEach((target: SERVER_NET_NODE, i: number) => {
     // todo refactor to all use the same port for all and filter it later
-    const messagePort = i + 1  
     loopThroughNodes(ns, target.hostname, messagePort, ratio)
   })
 }

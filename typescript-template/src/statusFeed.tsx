@@ -1,13 +1,13 @@
 import { NS } from '@ns';
 import React from 'lib/react';
-import { netNodesFromStrings } from './functions/netNodesFromStrings';
+import { netNodeFromString, netNodesFromStrings } from './functions/netNodesFromStrings';
 import scanServers from './functions/scanServers';
 import { hackable } from './functions/std/fliters';
-import { messageChannel } from './Types';
+import { messageChannels, portActionMessages } from './Types';
 interface IMyContentProps {
+  ns: NS
   feed: (string | number)[]
-  channels: messageChannel[]
-  messageFeed: IMessageFeed
+  channels: messageChannels
 }
 interface feedData {
   data: (string | number)[]
@@ -16,15 +16,12 @@ interface IStyles {
   [key: string]: React.CSSProperties
 }
 
-interface IMessageFeed {
-  [key: string]: string[]
-}
 interface IChannels {
-  channels: messageChannel[],
-  messageFeed: IMessageFeed
+  ns: NS
+  channels: messageChannels,
 }
 // todo refactor message ports to be a single port, and use the messages to sort them
-const MyContent = ({ feed, channels, messageFeed }: IMyContentProps) => {
+const MyContent = ({ ns, feed, channels }: IMyContentProps) => {
   const styles: IStyles = {
     container: {
       display: "flex",
@@ -46,7 +43,7 @@ const MyContent = ({ feed, channels, messageFeed }: IMyContentProps) => {
         <Feed data={feed} />
       </div>
       <div>
-        <Channels channels={channels} messageFeed={messageFeed} />
+        <Channels ns={ns} channels={channels} />
       </div>
     </div>
   </>;
@@ -84,28 +81,55 @@ const Feed = ({ data }: feedData) => {
   </>
 }
 
-const Channels = ({ channels, messageFeed }: IChannels) => {
+const Channels = ({ ns, channels }: IChannels) => {
   const styles: IStyles = {
     ul: {
-      marginBottom: "2rem"
+      background: "#444",
+      minHeight: "8rem",
+      // marginBottom: "2rem"
     }
   }
   return (
     <>
       <h1>Your channels</h1>
-      {channels.map((channel: messageChannel) => {
-        return (
-          <>
-            <h2>{channel.hostname}</h2>
-            <ul>
-              {messageFeed[channel.port].map(message => <li>{message}</li>)}
-            </ul>
-          </>
-        )
-      })}
+      {
+        Object.entries(channels).map(([channel, obj]) => {
+          const divideBy = 100
+          const money = Number(obj.server.moneyAvailable) // divideBy
+          const maxMoney = Number(obj.server.moneyMax) // divideBy
+          const format = (num: number, isMoney: boolean) => {
+            if (isMoney) {
+              return Intl.NumberFormat("en-us", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(num)
+            }
+            return Intl.NumberFormat("en-us", { maximumFractionDigits: 3 }).format(num)
+
+          }
+          return (
+            <>
+              <h2>{channel}</h2>
+              <p><b>Security</b> level {obj.server.hackDifficulty}, min {obj.server.minDifficulty}, base {obj.server.baseDifficulty}</p>
+
+              <p><b>Money</b> available {money ? format(money, true) : 0}, max {maxMoney ? format(money, true) : 0}</p>
+              <ul style={styles.ul}>
+                {obj.messages.map(message => {
+                  enum verb {
+                    hack = "hacked",
+                    grow = "grew",
+                    weaken = "weakend"
+                  }
+                  return <>
+                    <li>{verb[message.action]} {message.target} {message.action === "hack" ? `for ${format(message.result, true)}` : `by ${format(message.result, false)}`}</li>
+                  </>
+                })}
+              </ul>
+            </>
+          )
+        })
+      }
     </>
   )
 }
+
 
 
 function readPort(ns: NS, port: number, limit: number, oldArr?: Array<any>,): Array<any> {
@@ -114,44 +138,60 @@ function readPort(ns: NS, port: number, limit: number, oldArr?: Array<any>,): Ar
   while ((data = ns.readPort(port)) !== "NULL PORT DATA") {
     arr.unshift(data)
   }
-  if (arr.length > limit) {
+  if (limit > 0 && arr.length > limit) {
     return arr.slice(0, limit)
   }
   return arr.slice()
 }
 
 
-    export async function main(ns: NS) {
-      const port = 3000
-      const channelPort = 5500
-      const limit = 20
-      ns.disableLog('ALL')
-    
-    
-    
-    
-    
-      // ns.disableLog("sleep")
-      let feed: Array<string | number> = []
-      let temp = readPort(ns, port, 1)
-      ns.print("temp: ", temp)
-      ns.print("temp[0]: ", temp[0])
-      const channels: messageChannel[] = netNodesFromStrings(ns, scanServers(ns, 1000))
-        .filter(node => hackable(node, ns.getHackingLevel()))
-        .map((node, i) => {
-          return { hostname: node.hostname, port: i + 1 }
-    
-        })
-      const messages: IMessageFeed = {}
-      feed = readPort(ns, port, limit, feed)
-      ns.printRaw(<MyContent feed={feed} channels={channels} messageFeed={messages}></MyContent>);
-      while (true) {
-        feed = readPort(ns, port, limit, feed)
-        channels.forEach(channel => {
-          messages[channel.port] = readPort(ns, channel.port, 5, messages[channel.port])
-        })
-        ns.clearLog()
-        ns.printRaw(<MyContent feed={feed} channels={channels} messageFeed={messages}></MyContent>);
-        await ns.sleep(500)
+export async function main(ns: NS) {
+  const port = 3000
+  const messagePort = 5500
+  const limit = 20
+  const messageLimit = 10
+  ns.disableLog('ALL')
+
+  // ns.disableLog("sleep")
+  let feed: Array<string | number> = []
+  let messageFeed = readPort(ns, port, -1)
+  // ns.print("temp: ", temp)
+  // ns.print("temp[0]: ", temp[0])
+
+  const channels: messageChannels = {}
+  netNodesFromStrings(ns, scanServers(ns, 1000))
+    .forEach((node) => {
+      channels[node.hostname] = { server: netNodeFromString(ns, node.hostname), messages: [] }
+    })
+  feed = readPort(ns, port, limit, feed)
+  messageFeed = readPort(ns, messagePort, -1, messageFeed)
+
+  // messageFeed.forEach(entry => {
+  //   const message: portActionMessages = JSON.parse(entry) as portActionMessages
+  //   const key: keyof messageChannel = message.hostname as keyof messageChannel
+  //   channels[key] = message
+
+  ns.printRaw(<MyContent ns={ns} feed={feed} channels={channels}></MyContent>);
+  while (true) {
+    feed = readPort(ns, port, limit, feed)
+    messageFeed = readPort(ns, messagePort, -1)
+    while (messageFeed.length > 0) {
+      const poped = messageFeed.shift()
+      if (poped !== undefined) {
+
+        // Update messages for channel for the given message
+        const message: portActionMessages = JSON.parse(poped)
+        const temp = channels[message.hostname].messages.slice()
+        temp.push(message)
+        channels[message.hostname].messages = [...temp.slice(0, messageLimit)]
+
+        // Update info for all channels
+        netNodesFromStrings(ns, scanServers(ns, 1000))
+          .forEach((node) => { channels[node.hostname].server = node })
       }
     }
+    ns.clearLog()
+    ns.printRaw(<MyContent ns={ns} feed={feed} channels={channels}></MyContent>);
+    await ns.sleep(500)
+  }
+}

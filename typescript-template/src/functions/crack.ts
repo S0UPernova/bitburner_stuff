@@ -1,6 +1,7 @@
 import { NS } from "@ns"
 import { SERVER_NET_NODE } from "@types"
 import genPath from "functions/genPath"
+import { connectToNode } from "functions/connectTo"
 
 //? maybe make this take SERVER_NET_NODE | SERVER_NET_NODE[]
 
@@ -68,39 +69,14 @@ export default async function crack(ns: NS, targetOrTargets: string | string[], 
       && tempServer.purchasedByPlayer === false
       && tempServer.hasAdminRights === true
     ) {
-      await connectTo(ns, tempServer)
+      await connectToNode(ns, tempServer)
       ns.tprint(`installing backdoor on: ${targetArr[i]} from ${ns.getHostname()}`)
       await ns.singularity.installBackdoor().then(async () => {
         // return to initial server
-        await connectTo(ns, home)
+        await connectToNode(ns, home)
         // ns.singularity.connect(home.hostname)
       })
     }
     await ns.sleep(100)
-
-    // const server: SERVER_NET_NODE = ns.getServer(target)
-    // server.connections = ns.scan(target)
-    // if (
-    //   skill >= skillRequired
-    //   && server.backdoorInstalled === false
-    //   && server.purchasedByPlayer === false
-    //   && server.hasAdminRights === true
-    // ) {
-
-    //   const path = await genPath(ns, server)
-    //   if (log) {
-    //     ns.tprint(`need to backdoor ${target}, run: con ${path.join("; con ")}; bd`)
-    //   }
-
-    // }
-  }//)
-
-}
-async function connectTo(ns: NS, destination: SERVER_NET_NODE) {
-  const arrToTarget: string[] = await genPath(ns, destination, false)
-  // ns.print("path: ", arrToTarget)
-  for (let j = 0; j < arrToTarget.length; j++) {
-    // ns.print("connecting to: ", arrToTarget[j])
-    ns.singularity.connect(arrToTarget[j])
   }
 }
