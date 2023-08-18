@@ -15,34 +15,46 @@ const weakenScript = "scripts/basics/weaken.js"
 const growScript = "scripts/basics/grow.js"
 const messagePort = 5500
 export function main(ns: NS) {
-  const ratio = {
-    weaken: 35,
-    grow: 60,
-    hack: 5
-  }
-  const targets = netNodesFromStrings(ns, scanServers(ns, 1000))
+  ns.disableLog("ALL")
+
+
+  const targets: SERVER_NET_NODE[] = netNodesFromStrings(ns, scanServers(ns, 1000))
     .filter(node => hackable(node, ns.getHackingLevel()))
+  sortFromNetNodes(targets)
 
-  sortFromNetNodes(ns, targets)
+  const nodes = netNodesFromStrings(ns, scanServers(ns, 1000))
+  sortFromNetNodes(nodes, "ram")
 
+  let threadsAvailable = 0
+  nodes.forEach(node => {
+    threadsAvailable += calcThreads(ns, node.hostname, weakenScript)
+  })
+
+  const ratio = {
+    weaken: Math.floor((threadsAvailable * 0.30) / 10),
+    grow: Math.floor((threadsAvailable * 0.6) / 10),
+    hack: Math.floor((threadsAvailable * 0.1) / 10)
+  }
   targets.forEach((target: SERVER_NET_NODE, i: number) => {
     // todo refactor to all use the same port for all and filter it later
-    loopThroughNodes(ns, target.hostname, messagePort, ratio)
+    loopThroughNodes(ns, nodes, target.hostname, messagePort, ratio)
   })
 }
 
-function loopThroughNodes(ns: NS, target: string, responsePort: number, ratio: ratio): ratio {
+
+function loopThroughNodes(ns: NS, nodes: SERVER_NET_NODE[], target: string, responsePort: number, ratio: ratio): ratio {
   const ratioUsed = {
     weaken: 0,
     grow: 0,
     hack: 0
   }
-  const nodes = netNodesFromStrings(ns, scanServers(ns, 1000))
   nodes.forEach(node => {
     let weakenReq = ratio.weaken - ratioUsed.weaken
     let growReq = ratio.grow - ratioUsed.grow
     let hackReq = ratio.hack - ratioUsed.hack
-
+    if (node.purchasedByPlayer) {
+      ns.print("hostname: ", node.hostname)
+    }
     if (weakenReq > 0) {
       const threadsUsed = callScript(ns, node.hostname, target, weakenScript, weakenReq, responsePort)
       weakenReq -= threadsUsed
@@ -64,12 +76,20 @@ function loopThroughNodes(ns: NS, target: string, responsePort: number, ratio: r
 }
 
 function callScript(ns: NS, hostname: string, target: string, script: string, remainingThreadRequirement: number, responsePort: number): number {
-  ns.scp(script, target, "home")
+  ns.scp(script, hostname, "home")
+  const maxThreads = calcThreads(ns, hostname, script)
+  const threads = Math.min(maxThreads, remainingThreadRequirement)
+  if (threads > 0) {
+    ns.exec(script, hostname, threads, target, hostname, responsePort)
+    return threads
+  }
+  return 0
+}
+
+function calcThreads(ns: NS, hostname: string, script: string) {
   const ramAvailable = ns.getServerMaxRam(hostname) - ns.getServerUsedRam(hostname)
   const ramRequired = ns.getScriptRam(script, hostname)
   if (ramAvailable < ramRequired || ramAvailable === 0 || ramRequired === 0) return 0
-  const maxThreads = Math.floor(ramAvailable / ramRequired)
-  const threads = Math.min(maxThreads, remainingThreadRequirement)
-  ns.exec(script, hostname, threads, target, hostname, responsePort)
+  const threads = Math.floor(ramAvailable / ramRequired)
   return threads
 }

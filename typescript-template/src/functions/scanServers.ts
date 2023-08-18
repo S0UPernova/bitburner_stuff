@@ -5,7 +5,6 @@ export default function scanServers(ns: NS, maxDepth: number = 5, log: boolean =
   let depth = 0
   if (!log) {
     ns.disableLog("scan")
-    ns.disableLog("sleep")
   }
   ns.scan("home").forEach((node: string) => {
     nodesSet.add(node)
