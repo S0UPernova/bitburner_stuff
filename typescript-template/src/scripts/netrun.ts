@@ -9,15 +9,17 @@ export async function main(ns: NS) {
   // // replace with flags
   const maxDepth = 1000
   const hackingLevel = ns.getHackingLevel()
-  const { script, runOn, top, killRunning, scriptArgs, threads, deps } = ns.flags([
+  const { script, runOn, top, killRunning, scriptArgs, threads, deps, time } = ns.flags([
     ["script", "hack.js"],
-    ["runOn", ""], ["top", 0],
+    ["runOn", ""], 
+    ["top", 0],
+    ["time", 0],
     ["killRunning", false],
     ["scriptArgs", ""],
     ["threads", 0],
     ["deps", ""]
   ])
-  if (typeof script !== "string" || typeof runOn !== "string" || typeof killRunning !== "boolean" || typeof threads !== "number" || typeof deps !== "string" || typeof top !== "number") return;
+  if (typeof script !== "string" || typeof runOn !== "string" || typeof killRunning !== "boolean" || typeof threads !== "number" || typeof deps !== "string" || typeof top !== "number" ||typeof time !== "number") return;
 
   const nodes: SERVER_NET_NODE[] = netNodesFromStrings(ns, scanServers(ns, maxDepth))
     .filter((server: SERVER_NET_NODE) => server.hasAdminRights && server.hostname !== "home")
@@ -28,7 +30,10 @@ export async function main(ns: NS) {
       const targets: string[] = [...ns.scan(node.hostname).filter(connection => filterFunction(netNodeFromString(ns, connection), hackingLevel))]
       globalTargets.forEach(t => targets.push(t.hostname))
       if (top > 0) {
-        sortFromHostnames(ns, targets)
+        sortFromHostnames(ns, targets, "money")
+      }
+      if (time) {
+        sortFromHostnames(ns, targets, "time")
       }
       if (scriptArgs) {
         runScript(ns, script, node.hostname, !Number.isNaN(threads) ? Number(threads) : 0, scriptArgs, killRunning, deps)
@@ -45,6 +50,9 @@ export async function main(ns: NS) {
     globalTargets.forEach(t => targets.push(t.hostname))
     if (top > 0) {
       sortFromHostnames(ns, targets)
+    }
+    if (time) {
+      sortFromHostnames(ns, targets, "time")
     }
     if (scriptArgs) {
       runScript(ns, script, runOn, !Number.isNaN(threads) ? Number(threads) : 0, scriptArgs, killRunning, deps)

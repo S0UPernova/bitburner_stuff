@@ -1,7 +1,7 @@
 import { NS } from "@ns"
 import { SERVER_NET_NODE } from "/Types"
 
-type ISortBy = "money" | "ram"
+type ISortBy = "money" | "ram" | "time"
 
 /**
  * Destructive modifies the array that was passed in.
@@ -15,6 +15,9 @@ export function sortFromHostnames(ns: NS, arr: string[], sortBy?: ISortBy): void
       break
     case "ram":
       HostnameRamSort(ns, arr)
+      break
+    case "time":
+      hostnameTimeSort(ns, arr)
       break
 
     default:
@@ -34,6 +37,12 @@ function HostnameMoneySort(ns: NS, arr: string[]): void {
   })
 }
 
+function hostnameTimeSort(ns: NS, arr: string[]) {
+  arr.sort((a: string, b: string) => {
+    return ns.getHackTime(a) - ns.getHackTime(b)
+  })
+}
+
 function HostnameRamSort(ns: NS, arr: string[]): void {
   arr.sort((a: string, b: string) => {
     const first = ns.getServer(a)
@@ -49,7 +58,7 @@ function HostnameRamSort(ns: NS, arr: string[]): void {
  * @param {SERVER_NET_NODE} arr 
  * @param {} sortBy
  */
-export function sortFromNetNodes(arr: SERVER_NET_NODE[], sortBy?: ISortBy): void {
+export function sortFromNetNodes(ns: NS, arr: SERVER_NET_NODE[], sortBy?: ISortBy): void {
   // if (sortBy === undefined) {
   //   sortBy = "money"
   // }
@@ -59,6 +68,9 @@ export function sortFromNetNodes(arr: SERVER_NET_NODE[], sortBy?: ISortBy): void
       break
     case "ram":
       NodesRamSort(arr)
+      break
+    case "time":
+      NodesTimeSort(ns, arr)
       break
 
     default:
@@ -73,6 +85,11 @@ function NodesMoneySort(arr: SERVER_NET_NODE[]): void {
       return b.moneyMax - a.moneyMax
     }
     else return 0
+  })
+}
+function NodesTimeSort(ns: NS, arr: SERVER_NET_NODE[]): void {
+  arr.sort((a: SERVER_NET_NODE, b: SERVER_NET_NODE) => {
+    return ns.getHackTime(a.hostname) - ns.getHackTime(b.hostname)
   })
 }
 
