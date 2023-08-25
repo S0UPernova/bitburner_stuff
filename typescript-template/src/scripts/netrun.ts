@@ -9,17 +9,18 @@ export async function main(ns: NS) {
   // // replace with flags
   const maxDepth = 1000
   const hackingLevel = ns.getHackingLevel()
-  const { script, runOn, top, killRunning, scriptArgs, threads, deps, time } = ns.flags([
-    ["script", "hack.js"],
-    ["runOn", ""], 
-    ["top", 0],
-    ["time", 0],
+  const { script, runOn, limit, money, time, killRunning, scriptArgs, threads, deps } = ns.flags([
+    ["script", "scripts/hack.js"],
+    ["runOn", ""],
+    ["limit", 0],
+    ["money", false],
+    ["time", false],
     ["killRunning", false],
     ["scriptArgs", ""],
     ["threads", 0],
     ["deps", ""]
   ])
-  if (typeof script !== "string" || typeof runOn !== "string" || typeof killRunning !== "boolean" || typeof threads !== "number" || typeof deps !== "string" || typeof top !== "number" ||typeof time !== "number") return;
+  if (typeof script !== "string" || typeof runOn !== "string" || typeof killRunning !== "boolean" || typeof threads !== "number" || typeof deps !== "string" || typeof limit !== "number" ||typeof time !== "boolean" || typeof money !== "boolean") return;
 
   const nodes: SERVER_NET_NODE[] = netNodesFromStrings(ns, scanServers(ns, maxDepth))
     .filter((server: SERVER_NET_NODE) => server.hasAdminRights && server.hostname !== "home")
@@ -29,17 +30,17 @@ export async function main(ns: NS) {
     nodes.forEach((node: SERVER_NET_NODE) => {
       const targets: string[] = [...ns.scan(node.hostname).filter(connection => filterFunction(netNodeFromString(ns, connection), hackingLevel))]
       globalTargets.forEach(t => targets.push(t.hostname))
-      if (top > 0) {
+      if (money) {
         sortFromHostnames(ns, targets, "money")
       }
-      if (time) {
+      else if (time) {
         sortFromHostnames(ns, targets, "time")
       }
       if (scriptArgs) {
         runScript(ns, script, node.hostname, !Number.isNaN(threads) ? Number(threads) : 0, scriptArgs, killRunning, deps)
       }
       else {
-        runScript(ns, script, node.hostname, !Number.isNaN(threads) ? Number(threads) : 0, targets.slice(0, (top) > 0 ? top : targets.length), killRunning, deps)
+        runScript(ns, script, node.hostname, !Number.isNaN(threads) ? Number(threads) : 0, targets.slice(0, (limit) > 0 ? limit : targets.length), killRunning, deps)
       }
 
     })
@@ -48,17 +49,18 @@ export async function main(ns: NS) {
     ns.print("using runOn.")
     const targets: string[] = [...ns.scan(runOn).filter(connection => filterFunction(netNodeFromString(ns, connection), hackingLevel))]
     globalTargets.forEach(t => targets.push(t.hostname))
-    if (top > 0) {
-      sortFromHostnames(ns, targets)
+    if (money) {
+      sortFromHostnames(ns, targets, "money")
     }
-    if (time) {
+    else if (time) {
       sortFromHostnames(ns, targets, "time")
     }
+
     if (scriptArgs) {
       runScript(ns, script, runOn, !Number.isNaN(threads) ? Number(threads) : 0, scriptArgs, killRunning, deps)
     }
     else {
-      runScript(ns, script, runOn, !Number.isNaN(threads) ? Number(threads) : 0, targets.slice(0, (top) > 0 ? top : targets.length), killRunning, deps)
+      runScript(ns, script, runOn, !Number.isNaN(threads) ? Number(threads) : 0, targets.slice(0, (limit) > 0 ? limit : targets.length), killRunning, deps)
     }
   }
 }

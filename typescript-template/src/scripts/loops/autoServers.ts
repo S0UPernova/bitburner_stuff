@@ -23,7 +23,7 @@ export async function main(ns: NS) {
       ns.purchaseServer(serverName, purchaseRam)
       // ns.exec("scripts/infect.js", runOn, 1, "1000")
       // await ns.sleep(1000 * 30)
-      ns.exec("scripts/netrun.js", runOn, 1, "--script", "hack.js", "--top", numberOfServersToHit ? numberOfServersToHit : 10, "--runOn", serverName)
+      ns.exec("scripts/netrun.js", runOn, 1, "--script", "hack.js", "--limit", numberOfServersToHit ? numberOfServersToHit : 10, "--runOn", serverName, "--time")
     }
   }
 
@@ -50,7 +50,7 @@ export async function main(ns: NS) {
       ns.upgradePurchasedServer(weakestServer, upgrayeddRam * 2)
       // ns.exec("scripts/infect.js", runOn, 1, "1000")
       // await ns.sleep(1000 * 30)
-      ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", weakestServer, "--top", "10", "--killRunning")
+      ns.exec("scripts/netrun.js", runOn, 1, "--script", "scripts/hack.js", "--runOn", weakestServer, "--limit", numberOfServersToHit ? numberOfServersToHit : 10, "--time", "--killRunning")
     }
   }
   ns.tprint("You are at your server limit, and their ram is maxed out")
